@@ -20,6 +20,6 @@ mkdir -p "$EXTRACT_DIR"
 echo "[INFO] extraction de l'archive dans $EXTRACT_DIR..."
 tar -xf "$TARGET_TAR" -C "$EXTRACT_DIR"
 
-#4. sécurité : rendre les données brutes extraites en lecture suele 
+#4. sécurité : rendre les données brutes extraites en lecture seule 
 chmod -R -w "$EXTRACT_DIR"
 echo "[ok] extraction et verouillage des données brutes terminés avec succés."
