@@ -3,6 +3,7 @@ set euo pipefail
 
 echo "[INFO] début de l'extraction des données brutes..."
 TARGET_TAR="data/raw/GSE15852_RAW.tar"
+TARGET_MATRIX="data/raw/GSE15852_series_matrix.txt.gz"
 EXTRACT_DIR="data/raw/extracted"
 
 #1. vérifier que l'archive existe 
@@ -20,6 +21,12 @@ mkdir -p "$EXTRACT_DIR"
 echo "[INFO] extraction de l'archive dans $EXTRACT_DIR..."
 tar -xf "$TARGET_TAR" -C "$EXTRACT_DIR"
 
-#4. sécurité : rendre les données brutes extraites en lecture seule 
+#4. décompression de la matrice GEO (.gz) si elle est présente
+if [ -f "$TARGET_MATRIX" ]; then
+    echo "[INFO] décompression de la matrice series_matrix..."
+    gunzip -k "$TARGET_MATRIX"
+fi
+
+#5. sécurité : rendre les données brutes extraites en lecture seule 
 chmod -R -w "$EXTRACT_DIR"
-echo "[ok] extraction et verouillage des données brutes terminés avec succés."
+echo "[ok] extraction, décompression et verouillage des données brutes terminés avec succés."
