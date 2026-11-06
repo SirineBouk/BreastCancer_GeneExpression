@@ -78,3 +78,78 @@ END {
 }
 ' > data/processed/sample_metadata.csv
 
+
+# Validate the generated metadata
+
+awk -F ',' '
+
+NR == 1 {
+    next
+}
+
+{
+    rows++
+
+    sample_id = $1
+    patient_id = $2
+    condition = $3
+
+    # Check for missing information.
+    if (sample_id == "" || patient_id == "") {
+        print "Error: missing sample or patient ID." > "/dev/stderr"
+        errors = 1
+    }
+
+    # Check for duplicate sample IDs.
+    if (sample_id != "" && seen_sample[sample_id]++) {
+        print "Error: duplicate sample ID:", sample_id > "/dev/stderr"
+        errors = 1
+    }
+
+    # Count Normal and Tumor samples for each patient.
+    if (condition == "Normal") {
+        normal[patient_id]++
+        normal_count++
+    }
+    else if (condition == "Tumor") {
+        tumor[patient_id]++
+        tumor_count++
+    }
+    else {
+        print "Error: invalid condition:", condition > "/dev/stderr"
+        errors = 1
+    }
+
+    patients[patient_id] = 1
+}
+
+END {
+
+    # Check that every patient has exactly one Normal and one Tumor sample.
+    for (patient in patients) {
+        patient_count++
+
+        if (normal[patient] != 1 || tumor[patient] != 1) {
+            print "Error: incomplete pair for patient:", patient > "/dev/stderr"
+            errors = 1
+        }
+    }
+
+    # Check the expected dataset dimensions.
+    if (rows != 86 || patient_count != 43) {
+        print "Error: incorrect number of samples or patients." > "/dev/stderr"
+        errors = 1
+    }
+
+    if (errors) {
+        exit 1
+    }
+
+    print "Metadata validation successful!"
+    print "Total samples:", rows
+    print "Total patients:", patient_count
+    print "Normal samples:", normal_count
+    print "Tumor samples:", tumor_count
+}
+' data/processed/sample_metadata.csv || exit 1
+
