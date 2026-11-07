@@ -27,7 +27,7 @@ else
 fi 
 
 #3. GPL96 annotation (.annot.gz)
-GPL_DIRECT_URL="http://ftp.ncbi.nlm.nih.gov/geo/platforms/GPL9nnn/GPL96/annot/GPL96.annot.gz"
+GPL_DIRECT_URL="https://ftp.ncbi.nlm.nih.gov/geo/platforms/GPLnnn/GPL96/annot/GPL96.annot.gz"
 TARGET_GPL="data/raw/GPL96.annot.gz"
 
 if [ -f "$TARGET_GPL" ]; then
