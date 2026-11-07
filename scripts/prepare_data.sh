@@ -1,25 +1,44 @@
 #!/bin/bash
 
+# Display informational messages.
+log_info() {
+    echo "[INFO] $1"
+}
+
+# Display successful operation messages.
+log_ok() {
+    echo "[OK] $1"
+}
+
+# Display error messages.
+log_error() {
+    echo "[ERROR] $1" >&2
+}
+
+echo -e "\n[INFO] PRÉPARATION DES DONNÉES POUR L'ANALYSE\n"
+
 # Check that all required files are present
 
+log_info "Vérification des fichiers d'entrée..."
 if [ ! -f "data/raw/GSE15852_series_matrix.txt.gz" ]; then
-    echo "Series Matrix file not found."
+    log_error "Fichier Series Matrix introuvable"
     exit 1
 fi
 
 if [ ! -f "data/raw/GPL96.annot.gz" ]; then
-    echo "GPL96 annotation file not found."
+    elog_error "Fichier d'annotation GPL96 introuvable"
     exit 1
 fi
+log_ok "Fichiers nécessaires disponibles."
+echo
 
 # Create the output directory data/processed
-
 mkdir -p data/processed
 
 
 # Extract GEO identifiers and sample information
 # Build sample_metadata.csv
-
+log_info "Préparation des métadonnées..."
 zcat data/raw/GSE15852_series_matrix.txt.gz | awk -F '\t' '
 
 BEGIN {
@@ -45,7 +64,7 @@ BEGIN {
 
 END {
     if (number_ids != 86 || number_titles != 86) {
-        print "Error: expected 86 samples and 86 titles." > "/dev/stderr"
+        print "[ERROR] Nombre attendu : 86 échantillons et 86 titres." > "/dev/stderr"
         exit 1
     }
 
@@ -77,10 +96,9 @@ END {
     }
 }
 ' > data/processed/sample_metadata.csv
-
+log_ok "Fichier généré : sample_metadata.csv"
 
 # Validate the generated metadata
-
 awk -F ',' '
 
 NR == 1 {
@@ -96,13 +114,13 @@ NR == 1 {
 
     # Check for missing information.
     if (sample_id == "" || patient_id == "") {
-        print "Error: missing sample or patient ID." > "/dev/stderr"
+        print "[ERROR] Identifiant d'\''échantillon ou de patient manquant." > "/dev/stderr"
         errors = 1
     }
 
     # Check for duplicate sample IDs.
     if (sample_id != "" && seen_sample[sample_id]++) {
-        print "Error: duplicate sample ID:", sample_id > "/dev/stderr"
+        print "[ERROR] Identifiant d'\''échantillon dupliqué :", sample_id > "/dev/stderr"
         errors = 1
     }
 
@@ -116,7 +134,7 @@ NR == 1 {
         tumor_count++
     }
     else {
-        print "Error: invalid condition:", condition > "/dev/stderr"
+        print "[ERROR] Condition d'\''échantillon invalide :", condition > "/dev/stderr"
         errors = 1
     }
 
@@ -130,14 +148,14 @@ END {
         patient_count++
 
         if (normal[patient] != 1 || tumor[patient] != 1) {
-            print "Error: incomplete pair for patient:", patient > "/dev/stderr"
+            print "[ERROR] Paire incomplète pour le patient :", patient > "/dev/stderr"
             errors = 1
         }
     }
 
     # Check the expected dataset dimensions.
     if (rows != 86 || patient_count != 43) {
-        print "Error: incorrect number of samples or patients." > "/dev/stderr"
+        print "[ERROR] Nombre incorrect d'\''échantillons ou de patients." > "/dev/stderr"
         errors = 1
     }
 
@@ -145,17 +163,14 @@ END {
         exit 1
     }
 
-    print "Metadata validation successful!"
-    print "Total samples:", rows
-    print "Total patients:", patient_count
-    print "Normal samples:", normal_count
-    print "Tumor samples:", tumor_count
 }
 ' data/processed/sample_metadata.csv || exit 1
+log_ok "Validation réussie : 86 échantillons (43 Normaux, 43 Tumoraux)."
+echo
 
 
 # Extract the expression table and create expression_matrix.csv.
-
+log_info "Génération de la matrice d'expression..."
 zcat data/raw/GSE15852_series_matrix.txt.gz | awk -F '\t' '
 
 BEGIN {
@@ -191,11 +206,11 @@ in_table {
 }
 
 ' > data/processed/expression_matrix.csv
+log_ok "Fichier généré : expression_matrix.csv"
 
 # Validate the expression matrix.
-
 if [ ! -s "data/processed/expression_matrix.csv" ]; then
-    echo "Error: expression matrix is missing or empty." >&2
+    log_error "La matrice d'expression est absente ou vide"
     exit 1
 fi
 
@@ -213,19 +228,19 @@ FNR == NR {
 FNR == 1 {
 
     if ($1 != "probe_id") {
-        print "Error: first column must be probe_id." > "/dev/stderr"
+        print "[ERROR] La première colonne doit être probe_id." > "/dev/stderr"
         errors = 1
     }
 
     if (NF != 87) {
-        print "Error: expected 87 columns in the header." > "/dev/stderr"
+        print "[ERROR] Le nombre attendu de colonnes dans l'\''en-tête est 87." > "/dev/stderr"
         errors = 1
     }
 
     # Compare the sample IDs with the metadata file.
     for (i = 2; i <= NF; i++) {
         if ($i != expected[i - 1]) {
-            print "Error: sample ID mismatch at column", i > "/dev/stderr"
+            print "[ERROR] Identifiant d'\''échantillon incorrect à la colonne", i > "/dev/stderr"
             errors = 1
         }
     }
@@ -239,25 +254,25 @@ FNR == 1 {
 
     # Check the number of columns.
     if (NF != 87) {
-        print "Error: incorrect number of columns at line", FNR > "/dev/stderr"
+        print "[ERROR] Nombre incorrect de colonnes à la ligne", FNR > "/dev/stderr"
         errors = 1
     }
 
     # Check for missing or duplicate probe IDs.
     if ($1 == "") {
-        print "Error: missing probe ID at line", FNR > "/dev/stderr"
+        print "[ERROR] Identifiant de sonde manquant à la ligne", FNR > "/dev/stderr"
         errors = 1
     }
 
     if ($1 != "" && seen_probe[$1]++) {
-        print "Error: duplicate probe ID:", $1 > "/dev/stderr"
+        print "[ERROR] Identifiant de sonde dupliqué :", $1 > "/dev/stderr"
         errors = 1
     }
 
     # Check that expression values are numeric.
     for (i = 2; i <= NF; i++) {
         if ($i !~ /^-?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][-+]?[0-9]+)?$/) {
-            print "Error: invalid expression value at line", FNR, "column", i > "/dev/stderr"
+            print "[ERROR] Valeur d'\''expression non numérique à la ligne", FNR, "colonne", i > "/dev/stderr"
             errors = 1
         }
     }
@@ -266,12 +281,12 @@ FNR == 1 {
 END {
 
     if (sample_count != 86) {
-        print "Error: metadata must contain 86 samples." > "/dev/stderr"
+        print "[ERROR] Les métadonnées doivent contenir 86 échantillons." > "/dev/stderr"
         errors = 1
     }
 
     if (rows == 0) {
-        print "Error: expression matrix contains no data rows." > "/dev/stderr"
+        print "[ERROR] La matrice d'\''expression ne contient aucune ligne de données." > "/dev/stderr"
         errors = 1
     }
 
@@ -279,14 +294,13 @@ END {
         exit 1
     }
 
-    print "Expression matrix validation successful!"
-    print "Number of samples:", sample_count
-    print "Number of probes:", rows
 }
 ' data/processed/sample_metadata.csv data/processed/expression_matrix.csv || exit 1
+log_ok "Validation réussie : 22283 sondes × 86 échantillons."
+echo
 
 # Extract probe annotations and create probe_annotation.csv
-
+log_info "Extraction des annotations des sondes..."
 zcat data/raw/GPL96.annot.gz | awk -F '\t' '
 
 BEGIN {
@@ -327,11 +341,11 @@ in_table {
 }
 
 ' > data/processed/probe_annotation.csv
+log_ok "Fichier généré : probe_annotation.csv"
 
 # Validate the probe annotation file
-
 if [ ! -s "data/processed/probe_annotation.csv" ]; then
-    echo "Error: probe annotation file is missing or empty." >&2
+    log_error "Le fichier d'annotation des sondes est absent ou vide"
     exit 1
 fi
 
@@ -339,7 +353,7 @@ awk -F ',' '
 
 NR == 1 {
     if ($1 != "probe_id" || $2 != "gene_symbol" || $3 != "entrez_id") {
-        print "Error: incorrect annotation header." > "/dev/stderr"
+        print "[ERROR] En-tête du fichier d'\''annotation incorrect." > "/dev/stderr"
         errors = 1
     }
     next
@@ -350,19 +364,19 @@ NR == 1 {
 
     # Check that every row has three columns.
     if (NF != 3) {
-        print "Error: incorrect number of columns at line", NR > "/dev/stderr"
+        print "[ERROR] Nombre incorrect de colonnes à la ligne", NR > "/dev/stderr"
         errors = 1
     }
 
     # Check for missing probe IDs.
     if ($1 == "") {
-        print "Error: missing probe ID at line", NR > "/dev/stderr"
+        print "[ERROR] Identifiant de sonde manquant à la ligne", NR > "/dev/stderr"
         errors = 1
     }
 
     # Check for duplicate probe IDs.
     if ($1 != "" && seen[$1]++) {
-        print "Error: duplicate probe ID:", $1 > "/dev/stderr"
+        print "[ERROR] Identifiant de sonde dupliqué :", $1 > "/dev/stderr"
         errors = 1
     }
 
@@ -374,7 +388,7 @@ NR == 1 {
 
 END {
     if (rows == 0) {
-        print "Error: no annotation records found." > "/dev/stderr"
+        print "[ERROR] Aucun enregistrement d'\''annotation trouvé." > "/dev/stderr"
         errors = 1
     }
 
@@ -382,14 +396,14 @@ END {
         exit 1
     }
 
-    print "Probe annotation validation successful!"
-    print "Number of annotated probes:", rows
-    print "Missing gene annotations:", missing_annotations
 }
 ' data/processed/probe_annotation.csv || exit 1
+log_ok "Validation réussie : 22283 sondes annotées."
+echo
 
 # Compare expression probes with annotation records to ensure
 # that every probe in the expression matrix has a matching annotation
+log_info "Vérification de la correspondance des sondes..."
 awk -F ',' '
 
 BEGIN {
@@ -413,11 +427,9 @@ FNR > 1 {
 }
 
 END {
-    print "Expression probes:", expression_count
-    print "Probes without annotation records:", missing
-    
     if (missing == 0) {
-    print "All expression probes have matching annotation records!"
-}
+        print "[OK] Correspondance vérifiée.\n"
+    }
 }
 ' data/processed/probe_annotation.csv data/processed/expression_matrix.csv
+log_ok "PRÉPARATION DES DONNÉES TERMINÉE AVEC SUCCÈS"
