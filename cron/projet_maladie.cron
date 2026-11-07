@@ -1,0 +1,3 @@
+# Lancer le pipeline chaque lundi à 02:00
+0 2 * * 1 /home/imnx/Desktop/BreastCancer_GeneExpression/run.sh >>
+/home/imnx/Desktop/BreastCancer_GeneExpression/logs/cron.log 2>&1
