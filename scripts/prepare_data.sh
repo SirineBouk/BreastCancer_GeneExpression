@@ -284,3 +284,140 @@ END {
     print "Number of probes:", rows
 }
 ' data/processed/sample_metadata.csv data/processed/expression_matrix.csv || exit 1
+
+# Extract probe annotations and create probe_annotation.csv
+
+zcat data/raw/GPL96.annot.gz | awk -F '\t' '
+
+BEGIN {
+    OFS = ","
+}
+
+# Detect the beginning of the annotation table.
+/^!platform_table_begin/ {
+    in_table = 1
+    next
+}
+
+# Stop at the end of the annotation table.
+/^!platform_table_end/ {
+    exit
+}
+
+# Skip the header and write our own CSV header.
+in_table && !header {
+    print "probe_id", "gene_symbol", "entrez_id"
+    header = 1
+    next
+}
+
+# Extract the three required columns.
+in_table {
+    probe_id = $1
+    gene_symbol = $3
+    entrez_id = $4
+
+    # Remove quotation marks if present.
+    gsub(/"/, "", probe_id)
+    gsub(/"/, "", gene_symbol)
+    gsub(/"/, "", entrez_id)
+
+    # Write the annotation information.
+    print probe_id, gene_symbol, entrez_id
+}
+
+' > data/processed/probe_annotation.csv
+
+# Validate the probe annotation file
+
+if [ ! -s "data/processed/probe_annotation.csv" ]; then
+    echo "Error: probe annotation file is missing or empty." >&2
+    exit 1
+fi
+
+awk -F ',' '
+
+NR == 1 {
+    if ($1 != "probe_id" || $2 != "gene_symbol" || $3 != "entrez_id") {
+        print "Error: incorrect annotation header." > "/dev/stderr"
+        errors = 1
+    }
+    next
+}
+
+{
+    rows++
+
+    # Check that every row has three columns.
+    if (NF != 3) {
+        print "Error: incorrect number of columns at line", NR > "/dev/stderr"
+        errors = 1
+    }
+
+    # Check for missing probe IDs.
+    if ($1 == "") {
+        print "Error: missing probe ID at line", NR > "/dev/stderr"
+        errors = 1
+    }
+
+    # Check for duplicate probe IDs.
+    if ($1 != "" && seen[$1]++) {
+        print "Error: duplicate probe ID:", $1 > "/dev/stderr"
+        errors = 1
+    }
+
+    # Count missing gene annotations.
+    if ($2 == "" || $3 == "") {
+        missing_annotations++
+    }
+}
+
+END {
+    if (rows == 0) {
+        print "Error: no annotation records found." > "/dev/stderr"
+        errors = 1
+    }
+
+    if (errors) {
+        exit 1
+    }
+
+    print "Probe annotation validation successful!"
+    print "Number of annotated probes:", rows
+    print "Missing gene annotations:", missing_annotations
+}
+' data/processed/probe_annotation.csv || exit 1
+
+# Compare expression probes with annotation records to ensure
+# that every probe in the expression matrix has a matching annotation
+awk -F ',' '
+
+BEGIN {
+    missing = 0
+    expression_count = 0
+}
+
+NR == FNR {
+    if (FNR > 1) {
+        annotation[$1] = 1
+    }
+    next
+}
+
+FNR > 1 {
+    if (!($1 in annotation)) {
+        print "Missing annotation for probe:", $1
+        missing++
+    }
+    expression_count++
+}
+
+END {
+    print "Expression probes:", expression_count
+    print "Probes without annotation records:", missing
+    
+    if (missing == 0) {
+    print "All expression probes have matching annotation records!"
+}
+}
+' data/processed/probe_annotation.csv data/processed/expression_matrix.csv
