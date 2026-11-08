@@ -29,9 +29,18 @@ else
 fi
 
 #4. décompression de la matrice GEO (.gz) si elle est présente
+TARGET_MATRIX_DECOMPRESSED="data/raw/GSE15852_series_matrix.txt"
+
 if [ -f "$TARGET_MATRIX" ]; then
-    echo "[INFO] décompression de la matrice series_matrix..."
-    gunzip -k "$TARGET_MATRIX"
+   if [ -f "$TARGET_MATRIX_DECOMPRESSED" ]; then
+       echo "[INFO] le fichier de matrice décompressé existe déjà . décompression ignorée."
+    else 
+       echo "[INFO] décompression de la matrice series_matrix..."
+       gunzip -k "$TARGET_MATRIX"
+    fi 
+else
+   echo "[ERREUR] le fichier de matrice compressé est introuvable." >&2
+   exit 1
 fi
 
 echo "[ok] extraction, décompression et verouillage des données brutes terminés avec succés."
