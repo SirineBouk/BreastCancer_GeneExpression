@@ -15,11 +15,11 @@ PAIR_COL = "patient_id"   # colonne des métadonnées qui identifie le patient (
 
 def parse_args():
     p = argparse.ArgumentParser(description="Analyse différentielle appariée GSE15852")
-    p.add_argument("--matrix", required=True)
-    p.add_argument("--metadata", required=True)
-    p.add_argument("--annotation", default=None, help="probe_annotation.csv (optionnel)")
-    p.add_argument("--out-table", required=True)
-    p.add_argument("--out-figures", required=True)
+    p.add_argument("--matrix", default="data/processed/expression_matrix.csv")
+    p.add_argument("--metadata", default="data/processed/sample_metadata.csv")
+    p.add_argument("--annotation", default="data/processed/probe_annotation.csv")
+    p.add_argument("--out-table", default="results/tables/differentially_expressed_genes.csv")
+    p.add_argument("--out-figures", default="results/figures")
     p.add_argument("--fdr", type=float, default=0.05)
     p.add_argument("--lfc", type=float, default=1.0)
     return p.parse_args()
