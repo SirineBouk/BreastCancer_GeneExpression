@@ -101,34 +101,44 @@ else
 fi
 
 # ---------------------------------------------------------------
-# 5. Vérifier les bibliothèques de requirements.txt
+# 5. Créer l'environnement virtuel et installer les bibliothèques
 # ---------------------------------------------------------------
+
 if [[ ! -f "$REQUIREMENTS_FILE" ]]; then
     fail "fichier introuvable : $REQUIREMENTS_FILE"
-elif [[ "$python_ok" == true ]]; then
-    missing=()
-    n_packages=0
-    while IFS= read -r line || [[ -n "$line" ]]; do
-        # Enlever commentaires et espaces
-        pkg="$(echo "${line%%#*}" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
-        if [[ -z "$pkg" || "$pkg" == -* ]]; then continue; fi
-        # Garder seulement le nom (sans version, extras ni marqueurs)
-        name="$(echo "$pkg" | sed -E 's/[][<>=!~;@ ].*$//')"
-        if [[ -z "$name" ]]; then continue; fi
-        n_packages=$((n_packages + 1))
-        if ! "$PYTHON" -c 'import sys, importlib.metadata as m; m.version(sys.argv[1])' \
-             "$name" > /dev/null 2>&1; then
-            missing+=("$name")
-        fi
-    done < "$REQUIREMENTS_FILE"
 
-    if (( ${#missing[@]} > 0 )); then
-        fail "bibliothèques Python manquantes : ${missing[*]} (installer avec : $PYTHON -m pip install -r requirements.txt)"
+elif [[ "$python_ok" == true ]]; then
+
+    VENV_DIR="$PROJECT_DIR/.venv"
+
+    # Create the virtual environment if it does not exist
+    if [[ ! -d "$VENV_DIR" ]]; then
+        log "Création de l'environnement virtuel..."
+        
+        if ! "$PYTHON" -m venv "$VENV_DIR"; then
+            fail "Impossible de créer l'environnement virtuel."
+        fi
+    fi
+
+    # Activate the virtual environment
+    if [[ -f "$VENV_DIR/bin/activate" ]]; then
+        source "$VENV_DIR/bin/activate"
+        PYTHON="$VENV_DIR/bin/python"
+
+        log "Environnement virtuel activé."
+
+        # Install required Python libraries
+        log "Installation des bibliothèques Python..."
+
+        if "$PYTHON" -m pip install --quiet --disable-pip-version-check -r "$REQUIREMENTS_FILE"; then
+            log "Bibliothèques Python installées avec succès."
+        else
+            fail "Échec de l'installation des bibliothèques Python."
+        fi
     else
-        log "Bibliothèques Python présentes ($n_packages vérifiées)."
+        fail "Fichier d'activation de l'environnement virtuel introuvable."
     fi
 fi
-
 # ---------------------------------------------------------------
 # 6. Vérifier les droits d'accès
 # ---------------------------------------------------------------

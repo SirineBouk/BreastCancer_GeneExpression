@@ -62,7 +62,7 @@ cleanup() {
 run_step() {
     local description="$1"
     shift
-
+    echo  
     log "Début : $description"
 
     "$@" || die "Échec : $description"
@@ -99,8 +99,7 @@ log "Initialisation du projet"
 log "Début du pipeline"
 
 run_step "Préparation de l'environnement" \
-    bash "$PROJECT_DIR/scripts/setup.sh"
-
+   source "$PROJECT_DIR/scripts/setup.sh" 
 run_step "Téléchargement des données" \
     bash "$PROJECT_DIR/scripts/download.sh"
 
@@ -120,3 +119,25 @@ run_step "Archivage des résultats" \
     bash "$PROJECT_DIR/scripts/archive.sh"
 
 log "Pipeline terminé avec succès"
+# Execute cleanup manually
+trap - EXIT
+cleanup
+
+# Resume final
+echo 
+echo "Pipeline termine avec succes."
+echo ""
+echo "Resume :"
+echo "  Jeu de donnees        : GSE15852"
+echo "  Echantillons          : 86"
+echo "  Tumeurs               : 43"
+echo "  Tissus normaux        : 43"
+echo "  Paires completes      : 43"
+echo 
+echo "  Fichier des resultats : results/tables/differentially_expressed_genes.csv"
+echo "  Figures               : results/figures/"
+echo "  Journal               : $LOG_FILE"
+echo "  Archive               : ${ARCHIVE_DIR}/results_$(date '+%Y%m%d_%H%M%S').tar.gz"
+echo 
+
+exit 0 
