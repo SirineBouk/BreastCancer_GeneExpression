@@ -62,10 +62,13 @@ def validate_pairs(expr, meta):
 
 
 def to_log2(expr):
+    print(f"[INFO] Valeur maximale de la matrice : {expr.values.max():.1f}")
     if expr.values.max() > 30:
-        print("[INFO] Valeurs brutes détectées : transformation log2(x + 1).")
-        return np.log2(expr.clip(lower=0) + 1)
-    print("[INFO] Valeurs déjà en échelle log : pas de transformation.")
+        print("[INFO] Valeurs brutes détectées. Application de log2(x + 1)...")
+        expr = np.log2(expr.clip(lower=0) + 1)
+        print("[OK] Transformation appliquée.")
+        return expr
+    print("[INFO] Valeurs déjà en échelle log : aucune transformation.")
     return expr
 
 
@@ -134,9 +137,17 @@ def main():
 
     n_sig = int(res["significant"].sum())
     n_up = int((res["significant"] & (res["log2fc"] > 0)).sum())
-    print(f"Sondes analysées : {len(res)}")
-    print(f"Significatives   : {n_sig} (plus actives : {n_up}, moins actives : {n_sig - n_up})")
-    print(f"Tableau : {out}")
+    fig_path = Path(a.out_figures) / "volcano_plot.png"
+
+    print("\n[INFO] Résumé de l'analyse différentielle :")
+    print(f"[OK] Sondes analysées : {len(res):,}".replace(",", " "))
+    print(
+        f"[OK] Sondes significatives : {n_sig} "
+        f"(plus actives : {n_up}, moins actives : {n_sig - n_up})"
+    )
+    print(f"\n[OK] Tableau généré : {out}")
+    print(f"[OK] Figure générée : {fig_path}")
+    print("\n[OK] Analyse terminée avec succès.")
 
 
 if __name__ == "__main__":
