@@ -111,14 +111,18 @@ run_step "Préparation des données" \
 
 run_step "Analyse des données" \
     python3 "$PROJECT_DIR/scripts/analyze.py"
-
+run_step "Tests automatiques" \
+    "$PROJECT_DIR/.venv/bin/python" "$PROJECT_DIR/tests/test_analysis.py"
 run_step "Validation des résultats" \
     bash "$PROJECT_DIR/scripts/validate.sh"
 
+# Générer une seule date pour le nom de l'archive
+ARCHIVE_TIMESTAMP="$(date '+%Y%m%d_%H%M%S')"
+
 run_step "Archivage des résultats" \
+    env ARCHIVE_TIMESTAMP="$ARCHIVE_TIMESTAMP" \
     bash "$PROJECT_DIR/scripts/archive.sh"
 
-log "Pipeline terminé avec succès"
 # Execute cleanup manually
 trap - EXIT
 cleanup
@@ -137,7 +141,8 @@ echo
 echo "  Fichier des resultats : results/tables/differentially_expressed_genes.csv"
 echo "  Figures               : results/figures/"
 echo "  Journal               : $LOG_FILE"
-echo "  Archive               : ${ARCHIVE_DIR}/results_$(date '+%Y%m%d_%H%M%S').tar.gz"
+echo "  Archive               : results/archive/results_${ARCHIVE_TIMESTAMP}.tar.gz"
 echo 
+log "Pipeline terminé avec succès"
 
 exit 0 

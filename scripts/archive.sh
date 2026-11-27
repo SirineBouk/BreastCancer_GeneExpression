@@ -15,7 +15,7 @@ done
 
 mkdir -p "$ARCHIVE_DIR"
 
-DATE="$(date +%Y%m%d_%H%M%S)"
+DATE="${ARCHIVE_TIMESTAMP:-$(date +%Y%m%d_%H%M%S)}"
 ARCHIVE="$ARCHIVE_DIR/results_${DATE}.tar.gz"
 
 # Créer l'archive
