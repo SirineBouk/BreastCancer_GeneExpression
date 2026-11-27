@@ -111,7 +111,8 @@ run_step "Préparation des données" \
 
 run_step "Analyse des données" \
     python3 "$PROJECT_DIR/scripts/analyze.py"
-
+run_step "Tests automatiques" \
+    "$PROJECT_DIR/.venv/bin/python" "$PROJECT_DIR/tests/test_analysis.py"
 run_step "Validation des résultats" \
     bash "$PROJECT_DIR/scripts/validate.sh"
 
