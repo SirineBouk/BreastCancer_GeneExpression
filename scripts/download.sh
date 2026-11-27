@@ -20,7 +20,7 @@ download_file() {
     fi
     rm -f "$target" "$tmp"
     echo "[INFO] téléchargement de $target..."
-    curl -fL--retry 3 "$url" -o "$tmp"
+    curl -fL --retry 3 "$url" -o "$tmp"
     mv "$tmp" "$target"
     is_valid "$target" || { rm -f "$target"; echo "[ERREUR] fichier invalide " >&2; exit 1; }
 }
