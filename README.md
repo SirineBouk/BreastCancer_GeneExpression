@@ -380,16 +380,25 @@ L'ajout de 1 permet d'éviter le calcul du logarithme de zéro.
 
 ### 8.6. Tests et validation
 
-Des tests automatiques vérifient le fonctionnement des traitements Python
-avec des données artificielles valides et invalides. Ils contrôlent notamment
-la correspondance des échantillons, l'intégrité des paires et la structure
-des résultats.
+Des tests automatiques vérifient le bon fonctionnement des traitements Python à l'aide de données artificielles valides et invalides. Ils contrôlent notamment la correspondance entre les échantillons et les métadonnées, l'intégrité des paires tumorales et normales, la structure des résultats, ainsi que la génération des fichiers de sortie.
 
-Une étape de validation contrôle la présence, la structure et la lisibilité
-des fichiers produits.
+**Pour exécuter les tests indépendamment du pipeline**, depuis la racine du dépôt, utiliser la commande suivante :
 
-Lorsque tous les tests réussissent, le terminal affiche un résumé indiquant
-le nombre de tests exécutés et le statut `OK`.
+```
+source .venv/bin/activate && python -m unittest discover -s tests -p 'test_*.py'
+```
+
+Cette commande active l'environnement virtuel, puis recherche et exécute automatiquement les fichiers de tests correspondant au motif `test_*.py` dans le dossier `tests/`.
+
+Une étape de validation contrôle ensuite la présence, la structure et la lisibilité des fichiers produits.
+
+Pour exécuter cette validation indépendamment du pipeline :
+
+```
+bash scripts/validate.sh
+```
+
+Lorsque tous les tests réussissent, le terminal affiche un résumé indiquant le nombre de tests exécutés et le statut `OK`. En cas d'échec, les détails permettent d'identifier le test concerné.
 
 ### 8.7. Archivage
 
@@ -529,11 +538,11 @@ En cas de problème, vérifier les points suivants :
 
 ## 12. Répartition du travail
 
-| Membre (GitHub)                                | Rôle                    | Fichiers concernés                                                                                | Travail réalisé                                                                           |
-| ---------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| [@ambaramiira](https://github.com/ambaramiira) | Intégration et système  | `run.sh`, `config/config.sh`, `scripts/setup.sh`                                                  | Configuration de l'environnement, script principal et intégration du pipeline.            |
-| [@Mariane-Isl](https://github.com/Mariane-Isl) | Acquisition des données | `scripts/download.sh`, `scripts/extract.sh`, `SOURCES.md`                                         | Téléchargement, vérification, extraction et documentation des sources.                    |
-| [@SirineBouk](https://github.com/SirineBouk/)  | Préparation des données | `scripts/prepare_data.sh`,`README.md`                                                             | Préparation des métadonnées, de la matrice d'expression et des annotations.               |
-| [@melilin-afk](https://github.com/melilin-afk) | Analyse scientifique    | `scripts/analyze.py`                                                                              | Analyse statistique, comparaison des échantillons et génération des résultats et figures. |
-| [@its-imene](https://github.com/its-imene)     | Qualité et livraison    | `scripts/validate.sh`, `scripts/archive.sh`, `tests/test_analysis.py`, `cron/projet_maladie.cron` | Tests, validation, archivage, configuration cron et documentation.                        |
+| Membre (GitHub)                                | Rôle                    | Fichiers concernés                                                                                | Travail réalisé                                                                               |
+| ---------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [@ambaramiira](https://github.com/ambaramiira) | Intégration et système  | `run.sh`, `config/config.sh`, `scripts/setup.sh`                                                  | Configuration de l'environnement, script principal et intégration du pipeline.                |
+| [@Mariane-Isl](https://github.com/Mariane-Isl) | Acquisition des données | `scripts/download.sh`, `scripts/extract.sh`, `SOURCES.md`                                         | Téléchargement, vérification, extraction et documentation des sources.                        |
+| [@SirineBouk](https://github.com/SirineBouk/)  | Préparation des données | `scripts/prepare_data.sh`,`README.md`                                                             | Préparation des métadonnées, de la matrice d'expression et des annotations, et documentation. |
+| [@melilin-afk](https://github.com/melilin-afk) | Analyse scientifique    | `scripts/analyze.py`                                                                              | Analyse statistique, comparaison des échantillons et génération des résultats et figures.     |
+| [@its-imene](https://github.com/its-imene)     | Qualité et livraison    | `scripts/validate.sh`, `scripts/archive.sh`, `tests/test_analysis.py`, `cron/projet_maladie.cron` | Tests, validation, archivage, configuration cron.                                             |
 
