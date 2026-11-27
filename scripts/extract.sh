@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set euo pipefail
+set -euo pipefail
 
 echo "[INFO] début de l'extraction des données brutes..."
 TARGET_TAR="data/raw/GSE15852_RAW.tar"
@@ -14,7 +14,7 @@ fi
 
 #2. vérification des sommes de controle SHA-256
 echo "[INFO] vérification de l'intégrité via SHA-256..."
-sha256sum --check --status data/raw/checksums.sha256
+(cd data/raw && sha256sum --check checksums.sha256)
 
 #3. vérifier si les fichiers sont déjà extraits, sinon les extraire
 if [ -d "$EXTRACT_DIR" ] && [ "$(ls -A "$EXTRACT_DIR")" ]; then
