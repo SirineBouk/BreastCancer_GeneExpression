@@ -88,7 +88,7 @@ Le projet est destiné à être exécuté dans un environnement Linux, notamment
 Les outils nécessaires sont :
 
 - Bash
-- Python 3
+- Python 3.14.4
 - pip
 - curl ou wget
 - tar
@@ -100,25 +100,30 @@ Git est également nécessaire pour récupérer le dépôt.
 
 Les bibliothèques Python utilisées sont indiquées dans `requirements.txt`.
 
+### 5.1. Configuration matérielle et téléchargement
+
+L'exécution du pipeline nécessite :
+
+- Une connexion Internet pour télécharger les données depuis GEO.
+    
+- Un espace disque suffisant pour stocker les fichiers téléchargés, les données extraites et les résultats générés.
+    
+
+**Taille des données :**
+
+L'archive des données brutes `GSE15852_RAW.tar` occupe environ 941,7 Mo. D'autres fichiers GEO sont également téléchargés.
+
+**Durée d'exécution :**
+
+Lors du test du projet sur la machine de développement, l'exécution complète du pipeline a pris environ 1 minute. La durée réelle peut varier selon la connexion Internet, les performances de l'ordinateur et la nécessité de télécharger les données
+
+La durée réelle dépend de la vitesse de connexion Internet et des performances de l'ordinateur.
+
 ## 6. Installation
 
-### 6.1. Récupération du projet
+### 6.1. Installation des prérequis système
 
-Cloner le dépôt :
-
-```
-git clone https://github.com/SirineBouk/BreastCancer_GeneExpression.git
-```
-
-Entrer dans le dossier du projet :
-
-```
-cd BreastCancer_GeneExpression
-```
-
-### 6.2. Installation des prérequis système
-
-Avant d'exécuter le pipeline, installer les outils nécessaires sur Ubuntu :
+Avant de récupérer le projet, installer les outils nécessaires sur Ubuntu :
 
 ```
 sudo apt update
@@ -148,9 +153,33 @@ Ces outils sont nécessaires pour :
 
 Les commandes système nécessaires sont vérifiées automatiquement par le script `setup.sh` avant le lancement du pipeline.
 
+### 6.2. Récupération du projet
+
+Après l'installation de Git, cloner le dépôt :
+
+```
+git clone https://github.com/SirineBouk/BreastCancer_GeneExpression.git
+```
+
+Entrer dans le dossier du projet :
+
+```
+cd BreastCancer_GeneExpression
+```
+
 ### 6.3. Configuration de l'environnement Python
 
 Le projet utilise un environnement virtuel Python nommé `.venv`.
+
+**Version Python testée :** le pipeline a été testé avec Python 3.14.4 sous Ubuntu 26.04.1 LTS.
+
+Pour vérifier la version installée sur votre système, exécuter :
+
+```
+python3 --version
+```
+
+Les bibliothèques Python et leurs versions sont définies dans le fichier `requirements.txt`.
 
 Lors de l'exécution normale du pipeline, les opérations suivantes sont effectuées automatiquement :
 
@@ -207,17 +236,6 @@ Pour quitter l'environnement virtuel après utilisation :
 ```
 deactivate
 ```
-
-### 6.4. Donner les droits d'exécution
-
-Donner les droits d'exécution aux scripts shell :
-
-```
-chmod +x run.sh
-chmod +x scripts/*.sh
-```
-
-Cette opération permet d'exécuter directement les scripts du projet.
 
 ## 7. Exécution du pipeline
 
@@ -309,15 +327,78 @@ Cette étape permet notamment de :
 
 ### 8.5. Analyse statistique
 
-Le script Python effectue la comparaison des niveaux d'expression entre les tissus tumoraux et normaux en tenant compte de l'organisation appariée des échantillons.
+Le script Python `scripts/analyze.py` effectue la comparaison des niveaux d'expression entre les tissus mammaires tumoraux et normaux, en tenant compte de l'organisation appariée des échantillons (une tumeur et un tissu normal correspondant pour chaque patient).
 
 Les résultats statistiques sont enregistrés dans des fichiers exploitables.
 
+#### 8.5.1. Résultats de l'analyse statistique
+
+Le script `scripts/analyze.py` produit le fichier suivant :
+
+**Fichier produit :** `results/tables/differentially_expressed_genes.csv`
+
+**Attention :** ce fichier contient une ligne par sonde Affymetrix (GPL96), et non une ligne par gène. Un même gène peut être associé à plusieurs sondes, et certaines sondes peuvent ne pas avoir de gène annoté. Le nom du fichier contient « genes » par convention du projet.
+
+|Colonne|Signification|
+|---|---|
+|`probe_id`|Identifiant de la sonde Affymetrix.|
+|`mean_tumor`|Moyenne des valeurs d'expression (log2) dans les tissus tumoraux.|
+|`mean_normal`|Moyenne des valeurs d'expression (log2) dans les tissus normaux.|
+|`log2fc`|Log2 fold change : moyenne des différences tumeur − normal, calculées patient par patient. Une valeur de +1 signifie que le niveau d'expression est deux fois plus élevé dans la tumeur ; une valeur de −1 signifie qu'il est deux fois moins élevé.|
+|`statistic`|Statistique calculée par le test t de Student apparié.|
+|`p_value`|Valeur p brute du test statistique.|
+|`fdr`|Valeur p ajustée pour les tests multiples selon la méthode de Benjamini-Hochberg.|
+|`significant`|`True` si `fdr < 0.05` et `abs(log2fc) >= 1`, sinon `False`.|
+|`gene_symbol`, `entrez_id`|Annotations GPL96 associées à la sonde. Ces champs peuvent être vides ou contenir plusieurs gènes séparés par `///`.|
+
+Le tableau est trié par FDR croissant : les sondes présentant les plus petites valeurs de FDR apparaissent en haut du tableau.
+
+**Figure produite :** `results/figures/volcano_plot.png`
+
+Le graphique Volcano représente les résultats de l'analyse statistique. Chaque point correspond à une sonde Affymetrix. Les points rouges représentent les sondes considérées comme significatives selon les seuils retenus.
+
+#### Paramètres statistiques par défaut
+
+- **Test statistique :** test t de Student apparié, appliqué aux 43 paires de patients.
+    
+- **Correction des tests multiples :** méthode de Benjamini-Hochberg, avec un seuil FDR < 0.05.
+    
+- **Taille d'effet minimale :** `abs(log2fc) >= 1`, correspondant à un niveau d'expression au moins deux fois plus élevé ou deux fois moins élevé dans les tissus tumoraux.
+    
+- **Seuils modifiables :** les options `--fdr` et `--lfc` de `analyze.py` permettent de modifier respectivement le seuil FDR et la taille d'effet minimale.
+    
+
+#### Transformation log2(x + 1)
+
+Les valeurs d'expression traitées fournies par GEO (MAS 5.0) sont des signaux dont les valeurs vont approximativement de 0,43 à 19 000.
+
+Le script applique automatiquement la transformation `log2(x + 1)` lorsque la valeur maximale de la matrice dépasse 30. Sinon, il considère que les valeurs sont déjà en échelle logarithmique et ne les transforme pas.
+
+L'ajout de 1 permet d'éviter le calcul du logarithme de zéro.
+
+**Remarque :** le projet utilise les valeurs d'expression déjà traitées fournies par GEO. Aucune nouvelle normalisation RMA n'est effectuée à partir des fichiers CEL.
+
 ### 8.6. Tests et validation
 
-Des tests automatiques vérifient le fonctionnement des traitements Python.
+Des tests automatiques vérifient le bon fonctionnement des traitements Python à l'aide de données artificielles valides et invalides. Ils contrôlent notamment la correspondance entre les échantillons et les métadonnées, l'intégrité des paires tumorales et normales, la structure des résultats, ainsi que la génération des fichiers de sortie.
 
-Une étape de validation contrôle la présence et la structure des fichiers produits.
+**Pour exécuter les tests indépendamment du pipeline**, depuis la racine du dépôt, utiliser la commande suivante :
+
+```
+source .venv/bin/activate && python -m unittest discover -s tests -p 'test_*.py'
+```
+
+Cette commande active l'environnement virtuel, puis recherche et exécute automatiquement les fichiers de tests correspondant au motif `test_*.py` dans le dossier `tests/`.
+
+Une étape de validation contrôle ensuite la présence, la structure et la lisibilité des fichiers produits.
+
+Pour exécuter cette validation indépendamment du pipeline :
+
+```
+bash scripts/validate.sh
+```
+
+Lorsque tous les tests réussissent, le terminal affiche un résumé indiquant le nombre de tests exécutés et le statut `OK`. En cas d'échec, les détails permettent d'identifier le test concerné.
 
 ### 8.7. Archivage
 
@@ -457,11 +538,11 @@ En cas de problème, vérifier les points suivants :
 
 ## 12. Répartition du travail
 
-| Membre (GitHub)                                | Rôle                    | Fichiers concernés                                                                                | Travail réalisé                                                                           |
-| ---------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| [@ambaramiira](https://github.com/ambaramiira) | Intégration et système  | `run.sh`, `config/config.sh`, `scripts/setup.sh`                                                  | Configuration de l'environnement, script principal et intégration du pipeline.            |
-| [@Mariane-Isl](https://github.com/Mariane-Isl) | Acquisition des données | `scripts/download.sh`, `scripts/extract.sh`, `SOURCES.md`                                         | Téléchargement, vérification, extraction et documentation des sources.                    |
-| [@SirineBouk](https://github.com/SirineBouk/)  | Préparation des données | `scripts/prepare_data.sh`,`README.md`                                                             | Préparation des métadonnées, de la matrice d'expression et des annotations.               |
-| [@melilin-afk](https://github.com/melilin-afk) | Analyse scientifique    | `scripts/analyze.py`                                                                              | Analyse statistique, comparaison des échantillons et génération des résultats et figures. |
-| [@its-imene](https://github.com/its-imene)     | Qualité et livraison    | `scripts/validate.sh`, `scripts/archive.sh`, `tests/test_analysis.py`, `cron/projet_maladie.cron` | Tests, validation, archivage, configuration cron et documentation.                        |
+| Membre (GitHub)                                | Rôle                    | Fichiers concernés                                                                                | Travail réalisé                                                                               |
+| ---------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [@ambaramiira](https://github.com/ambaramiira) | Intégration et système  | `run.sh`, `config/config.sh`, `scripts/setup.sh`                                                  | Configuration de l'environnement, script principal et intégration du pipeline.                |
+| [@Mariane-Isl](https://github.com/Mariane-Isl) | Acquisition des données | `scripts/download.sh`, `scripts/extract.sh`, `SOURCES.md`                                         | Téléchargement, vérification, extraction et documentation des sources.                        |
+| [@SirineBouk](https://github.com/SirineBouk/)  | Préparation des données | `scripts/prepare_data.sh`,`README.md`                                                             | Préparation des métadonnées, de la matrice d'expression et des annotations, et documentation. |
+| [@melilin-afk](https://github.com/melilin-afk) | Analyse scientifique    | `scripts/analyze.py`                                                                              | Analyse statistique, comparaison des échantillons et génération des résultats et figures.     |
+| [@its-imene](https://github.com/its-imene)     | Qualité et livraison    | `scripts/validate.sh`, `scripts/archive.sh`, `tests/test_analysis.py`, `cron/projet_maladie.cron` | Tests, validation, archivage, configuration cron.                                             |
 
