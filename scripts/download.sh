@@ -38,7 +38,7 @@ download_file "$MATRIX_URL" "$TARGET_MATRIX"
 
 
 #3. GPL96 annotation (.annot.gz)
-GPL_DIRECT_URL="https://ftp.ncbi.nlm.nih.gov/geo/platforms/GPL9nnn/GPL96/annot/GPL96.annot.gz"
+GPL_DIRECT_URL="https://ftp.ncbi.nlm.nih.gov/geo/platforms/GPLnnn/GPL96/annot/GPL96.annot.gz"
 TARGET_GPL="data/raw/GPL96.annot.gz"
 download_file "$GPL_DIRECT_URL" "$TARGET_GPL"
 
