@@ -88,7 +88,7 @@ Le projet est destiné à être exécuté dans un environnement Linux, notamment
 Les outils nécessaires sont :
 
 - Bash
-- Python 3
+- Python 3.14.4
 - pip
 - curl ou wget
 - tar
@@ -100,25 +100,30 @@ Git est également nécessaire pour récupérer le dépôt.
 
 Les bibliothèques Python utilisées sont indiquées dans `requirements.txt`.
 
+### 5.1. Configuration matérielle et téléchargement
+
+L'exécution du pipeline nécessite :
+
+- Une connexion Internet pour télécharger les données depuis GEO.
+    
+- Un espace disque suffisant pour stocker les fichiers téléchargés, les données extraites et les résultats générés.
+    
+
+**Taille des données :**
+
+L'archive des données brutes `GSE15852_RAW.tar` occupe environ 941,7 Mo. D'autres fichiers GEO sont également téléchargés.
+
+**Durée d'exécution :**
+
+Lors du test du projet sur la machine de développement, l'exécution complète du pipeline a pris environ 1 minute. La durée réelle peut varier selon la connexion Internet, les performances de l'ordinateur et la nécessité de télécharger les données
+
+La durée réelle dépend de la vitesse de connexion Internet et des performances de l'ordinateur.
+
 ## 6. Installation
 
-### 6.1. Récupération du projet
+### 6.1. Installation des prérequis système
 
-Cloner le dépôt :
-
-```
-git clone https://github.com/SirineBouk/BreastCancer_GeneExpression.git
-```
-
-Entrer dans le dossier du projet :
-
-```
-cd BreastCancer_GeneExpression
-```
-
-### 6.2. Installation des prérequis système
-
-Avant d'exécuter le pipeline, installer les outils nécessaires sur Ubuntu :
+Avant de récupérer le projet, installer les outils nécessaires sur Ubuntu :
 
 ```
 sudo apt update
@@ -148,9 +153,33 @@ Ces outils sont nécessaires pour :
 
 Les commandes système nécessaires sont vérifiées automatiquement par le script `setup.sh` avant le lancement du pipeline.
 
+### 6.2. Récupération du projet
+
+Après l'installation de Git, cloner le dépôt :
+
+```
+git clone https://github.com/SirineBouk/BreastCancer_GeneExpression.git
+```
+
+Entrer dans le dossier du projet :
+
+```
+cd BreastCancer_GeneExpression
+```
+
 ### 6.3. Configuration de l'environnement Python
 
 Le projet utilise un environnement virtuel Python nommé `.venv`.
+
+**Version Python testée :** le pipeline a été testé avec Python 3.14.4 sous Ubuntu 26.04.1 LTS.
+
+Pour vérifier la version installée sur votre système, exécuter :
+
+```
+python3 --version
+```
+
+Les bibliothèques Python et leurs versions sont définies dans le fichier `requirements.txt`.
 
 Lors de l'exécution normale du pipeline, les opérations suivantes sont effectuées automatiquement :
 
