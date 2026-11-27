@@ -237,17 +237,6 @@ Pour quitter l'environnement virtuel après utilisation :
 deactivate
 ```
 
-### 6.4. Donner les droits d'exécution
-
-Donner les droits d'exécution aux scripts shell :
-
-```
-chmod +x run.sh
-chmod +x scripts/*.sh
-```
-
-Cette opération permet d'exécuter directement les scripts du projet.
-
 ## 7. Exécution du pipeline
 
 Le point d'entrée du projet est le fichier `run.sh`, qui coordonne automatiquement les différentes étapes du pipeline.
@@ -338,15 +327,69 @@ Cette étape permet notamment de :
 
 ### 8.5. Analyse statistique
 
-Le script Python effectue la comparaison des niveaux d'expression entre les tissus tumoraux et normaux en tenant compte de l'organisation appariée des échantillons.
+Le script Python `scripts/analyze.py` effectue la comparaison des niveaux d'expression entre les tissus mammaires tumoraux et normaux, en tenant compte de l'organisation appariée des échantillons (une tumeur et un tissu normal correspondant pour chaque patient).
 
 Les résultats statistiques sont enregistrés dans des fichiers exploitables.
 
+#### 8.5.1. Résultats de l'analyse statistique
+
+Le script `scripts/analyze.py` produit le fichier suivant :
+
+**Fichier produit :** `results/tables/differentially_expressed_genes.csv`
+
+**Attention :** ce fichier contient une ligne par sonde Affymetrix (GPL96), et non une ligne par gène. Un même gène peut être associé à plusieurs sondes, et certaines sondes peuvent ne pas avoir de gène annoté. Le nom du fichier contient « genes » par convention du projet.
+
+|Colonne|Signification|
+|---|---|
+|`probe_id`|Identifiant de la sonde Affymetrix.|
+|`mean_tumor`|Moyenne des valeurs d'expression (log2) dans les tissus tumoraux.|
+|`mean_normal`|Moyenne des valeurs d'expression (log2) dans les tissus normaux.|
+|`log2fc`|Log2 fold change : moyenne des différences tumeur − normal, calculées patient par patient. Une valeur de +1 signifie que le niveau d'expression est deux fois plus élevé dans la tumeur ; une valeur de −1 signifie qu'il est deux fois moins élevé.|
+|`statistic`|Statistique calculée par le test t de Student apparié.|
+|`p_value`|Valeur p brute du test statistique.|
+|`fdr`|Valeur p ajustée pour les tests multiples selon la méthode de Benjamini-Hochberg.|
+|`significant`|`True` si `fdr < 0.05` et `abs(log2fc) >= 1`, sinon `False`.|
+|`gene_symbol`, `entrez_id`|Annotations GPL96 associées à la sonde. Ces champs peuvent être vides ou contenir plusieurs gènes séparés par `///`.|
+
+Le tableau est trié par FDR croissant : les sondes présentant les plus petites valeurs de FDR apparaissent en haut du tableau.
+
+**Figure produite :** `results/figures/volcano_plot.png`
+
+Le graphique Volcano représente les résultats de l'analyse statistique. Chaque point correspond à une sonde Affymetrix. Les points rouges représentent les sondes considérées comme significatives selon les seuils retenus.
+
+#### Paramètres statistiques par défaut
+
+- **Test statistique :** test t de Student apparié, appliqué aux 43 paires de patients.
+    
+- **Correction des tests multiples :** méthode de Benjamini-Hochberg, avec un seuil FDR < 0.05.
+    
+- **Taille d'effet minimale :** `abs(log2fc) >= 1`, correspondant à un niveau d'expression au moins deux fois plus élevé ou deux fois moins élevé dans les tissus tumoraux.
+    
+- **Seuils modifiables :** les options `--fdr` et `--lfc` de `analyze.py` permettent de modifier respectivement le seuil FDR et la taille d'effet minimale.
+    
+
+#### Transformation log2(x + 1)
+
+Les valeurs d'expression traitées fournies par GEO (MAS 5.0) sont des signaux dont les valeurs vont approximativement de 0,43 à 19 000.
+
+Le script applique automatiquement la transformation `log2(x + 1)` lorsque la valeur maximale de la matrice dépasse 30. Sinon, il considère que les valeurs sont déjà en échelle logarithmique et ne les transforme pas.
+
+L'ajout de 1 permet d'éviter le calcul du logarithme de zéro.
+
+**Remarque :** le projet utilise les valeurs d'expression déjà traitées fournies par GEO. Aucune nouvelle normalisation RMA n'est effectuée à partir des fichiers CEL.
+
 ### 8.6. Tests et validation
 
-Des tests automatiques vérifient le fonctionnement des traitements Python.
+Des tests automatiques vérifient le fonctionnement des traitements Python
+avec des données artificielles valides et invalides. Ils contrôlent notamment
+la correspondance des échantillons, l'intégrité des paires et la structure
+des résultats.
 
-Une étape de validation contrôle la présence et la structure des fichiers produits.
+Une étape de validation contrôle la présence, la structure et la lisibilité
+des fichiers produits.
+
+Lorsque tous les tests réussissent, le terminal affiche un résumé indiquant
+le nombre de tests exécutés et le statut `OK`.
 
 ### 8.7. Archivage
 
